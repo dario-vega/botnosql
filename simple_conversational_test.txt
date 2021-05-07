@@ -1,0 +1,129 @@
+#metadata: information about the flow
+#  platformVersion: the version of the bots platform that this flow was written to work with 
+metadata:
+  platformVersion: "1.0"
+main: true
+name: HelloWorld
+#context: Define the variables which will used throughout the dialog flow here.
+context:
+  variables:
+    apiResult: "string"
+    empArr: "string"
+    actions: "string"
+    cardsRangeStartActions: "int"
+    cardsRangeStartRouting: "int"
+    iResult: "nlpresult"
+
+states:
+
+  # Setting the iteriator to 0
+  setCardsRangeStartActions:
+    component: "System.SetVariable"
+    properties:
+      variable: "cardsRangeStartActions"
+      value: 0
+    transitions: {}
+
+  setCardsRangeStartRouting:
+    component: "System.SetVariable"
+    properties:
+      variable: "cardsRangeStartRouting"
+      value: 0
+    transitions: {}
+
+  #Call the custom component
+  callAPIgetByConfirmationCode:
+    component: "complete.training.getByConfirmationCode"
+    properties:
+      variable: "apiResult"
+      confNo: "CU4Y1O"
+    transitions:
+      actions: 
+        success: "successState"
+        failure: "failureState"
+
+  successState:
+    component: "System.Output"
+    properties:
+      text: |-
+            Hello ${apiResult.value.answer.fullName}. This is the bag information for : ${apiResult.value.query.confNo}
+            
+            Flight Number information :
+            <#list apiResult.value.answer.routing as routing>
+            ${routing?index+1}. ${routing.flightNumber} ( ${routing.departureAirportCity} -  ${routing.departureAirportCode} ) / ( ${routing.arrivalAirportCity} -  ${routing.arrivalAirportCode} ) 
+            </#list>
+
+            
+      keepTurn: true
+    transitions:
+      next: "showResultActions" 
+
+
+
+  showResultActions:
+    component: "System.CommonResponse"
+    properties:
+      metadata:
+        responseItems:
+        - type: "text"
+          text: "${apiResult.value.answer.fullName}, Here's the action information for your baggages "
+          separateBubbles: true
+          visible:
+            expression: "<#if cardsRangeStartActions?number == 0>true<#else>false</#if>"
+          name: "Actions"
+        - type: "cards"
+          cardLayout: "vertical"
+          name: "actionCard"
+          cards:
+          - title: "${actions.actionInfo}"
+            description: "${actions.airportName}, ${actions.actionTime}"
+            name: "ActionInfo"
+            iteratorVariable: "actions"
+            rangeStart: "${cardsRangeStartActions}"
+            rangeSize: "4"
+        globalActions: 
+        - label: "More actions"
+          type: "postback"
+          skipAutoNumber: true
+          visible:
+            expression: "<#if cardsRangeStartActions?number+4 < actions.value?size>true<#else>false</#if>"
+          payload:
+            action: "more"
+            variables:
+              cardsRangeStartActions: "${cardsRangeStartActions?number+4}"
+          name: "Show more"
+        - label: "Done"
+          type: "postback"
+          payload:
+            action: "done"
+          name: "Done"
+      processUserMessage: true
+    transitions:
+      actions:
+        more: "showResultActions" 
+        done: "finish" 
+
+
+  # A couple of necessary outputs
+  
+  finish:
+    component: "System.CommonResponse"
+    properties:
+      processUserMessage: false
+      metadata: 
+        responseItems:      
+        - type: "text"
+          text: "Hope I was of help."
+    transitions:
+      return: "done"
+
+
+  failureState:
+    component: "System.Output"
+    properties:
+      text: |-
+            There is no current trip.
+            Can you please check back later.
+      keepTurn: false
+    transitions:
+      return: "done"
