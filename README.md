@@ -1,7 +1,5 @@
 # botnosql
 
-# Custom Component Package
-
 This project is in format of a Component Package. Component Packages are the
 recommended way to organize Bots Custom Components code and allow the custom
 component code to be more portable to different runtime environments.
@@ -50,7 +48,7 @@ npm run bots-node-sdk -- service .
 node --inspect $(npm bin)/bots-node-sdk service .
 ```
 
-With custom component services running, test endpoints like so:
+With custom component services running, test endpoints like so: ⚠️DO not use those test - not IMPLEMENTED
 
 ```shell
 # get component metadata
